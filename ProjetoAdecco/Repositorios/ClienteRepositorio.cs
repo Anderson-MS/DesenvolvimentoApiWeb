@@ -23,24 +23,22 @@ namespace TesteAdecco.Repositorios
 
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                await connection.OpenAsync(); // Use OpenAsync para operações assíncronas
+                await connection.OpenAsync(); 
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
-                    using (SqlDataReader reader = await command.ExecuteReaderAsync()) // Use ExecuteReaderAsync para operações assíncronas
+                    using (SqlDataReader reader = await command.ExecuteReaderAsync()) 
                     {
                         if (reader.HasRows)
                         {
-                            while (await reader.ReadAsync()) // Use ReadAsync para operações assíncronas
+                            while (await reader.ReadAsync()) 
                             {
-                                int clienteId = reader.GetInt32(0); // Substitua o índice pelo correto no seu caso
-                                string nomeCliente = reader.GetString(1); // Substitua o índice pelo correto no seu caso
-                                string EmailCliente = reader.GetString(2); // Substitua o índice pelo correto no seu caso
-                                string CPF = reader.GetString(3); // Substitua o índice pelo correto no seu caso
-                                string RG = reader.GetString(4); // Substitua o índice pelo correto no seu caso
-                              
-
-                                // Crie um objeto ClienteModel com os dados do banco de dados
+                                int clienteId = reader.GetInt32(0); 
+                                string nomeCliente = reader.GetString(1); 
+                                string EmailCliente = reader.GetString(2); 
+                                string CPF = reader.GetString(3); 
+                                string RG = reader.GetString(4);
+                          
                                 ClienteModel cliente = new ClienteModel
                                 {
                                       Id = clienteId,
@@ -50,7 +48,7 @@ namespace TesteAdecco.Repositorios
                                       RG = RG,                                     
                                 };
 
-                                clientes.Add(cliente); // Adicione o cliente à lista
+                                clientes.Add(cliente); 
                             }
                         }
                         else
@@ -61,7 +59,7 @@ namespace TesteAdecco.Repositorios
                 }
             }
 
-            return clientes; // Retorne a lista de clientes
+            return clientes; 
         }
 
         public async Task<ClienteModel> Adicionar(ClienteModel novoCliente)
@@ -79,8 +77,6 @@ namespace TesteAdecco.Repositorios
 
                 using (SqlCommand commandCliente = new SqlCommand(queryCliente, connection))
                 {
-
-                    // Adicione os parâmetros necessários para Cliente
                     commandCliente.Parameters.AddWithValue("@Nome", novoCliente.Nome);
                     commandCliente.Parameters.AddWithValue("@Email", novoCliente.Email);
                     commandCliente.Parameters.AddWithValue("@CPF", novoCliente.CPF);
@@ -101,8 +97,6 @@ namespace TesteAdecco.Repositorios
                         int novoContatoId = Convert.ToInt32(await commandContato.ExecuteScalarAsync());
                         novoCliente.Id = novoContatoId;
                     }
-
-
 
 
                     string queryEndereco = @"
@@ -130,147 +124,13 @@ namespace TesteAdecco.Repositorios
                 }
             }
         }
-
-        //public async Task<ClienteModel> Atualizar(ClienteModel clienteAtualizado, int id)
-        //{
-        //    string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
-        //    string queryCliente = @"
-        //        UPDATE Cliente
-        //        SET Nome = @Nome, 
-        //            Email = @Email, 
-        //            CPF = @CPF, 
-        //            RG = @RG
-        //        WHERE Id = @ClienteId;
-        //    ";
-
-        //    using (SqlConnection connection = new SqlConnection(connectionString))
-        //    {
-        //        await connection.OpenAsync();
-
-        //        using (SqlCommand commandCliente = new SqlCommand(queryCliente, connection))
-        //        {
-        //            // Adicione os parâmetros necessários para Cliente
-        //            commandCliente.Parameters.AddWithValue("@Nome", clienteAtualizado.Nome);
-        //            commandCliente.Parameters.AddWithValue("@Email", clienteAtualizado.Email);
-        //            commandCliente.Parameters.AddWithValue("@CPF", clienteAtualizado.CPF);
-        //            commandCliente.Parameters.AddWithValue("@RG", clienteAtualizado.RG);
-        //            commandCliente.Parameters.AddWithValue("@ClienteId", clienteAtualizado.Id);
-
-        //            await commandCliente.ExecuteNonQueryAsync();
-        //        }
-
-        //        // Atualizar Contato (exemplo)
-        //        string queryContato = @"
-        //            UPDATE Contato
-        //            SET Tipo = @Tipo, 
-        //                DDD = @DDD, 
-        //                Telefone = @Telefone
-        //            WHERE ClienteId = @ClienteId;
-        //        ";
-
-        //        using (SqlCommand commandContato = new SqlCommand(queryContato, connection))
-        //        {
-        //            // Adicione os parâmetros de Contato
-        //            commandContato.Parameters.AddWithValue("@Tipo", clienteAtualizado.Tipo);
-        //            commandContato.Parameters.AddWithValue("@DDD", clienteAtualizado.DDD);
-        //            commandContato.Parameters.AddWithValue("@Telefone", clienteAtualizado.Telefone);
-        //            commandContato.Parameters.AddWithValue("@ClienteId", clienteAtualizado.Id);
-
-        //            await commandContato.ExecuteNonQueryAsync();
-        //        }
-
-        //        // Atualizar Endereco (exemplo)
-        //        string queryEndereco = @"
-        //            UPDATE Endereco
-        //            SET Tipo = @Tipo, 
-        //                CEP = @CEP, 
-        //                Logradouro = @Logradouro, 
-        //                Numero = @Numero, 
-        //                Bairro = @Bairro, 
-        //                Complemento = @Complemento, 
-        //                Cidade = @Cidade, 
-        //                Estado = @Estado, 
-        //                Referencia = @Referencia
-        //            WHERE ClienteId = @ClienteId;
-        //        ";
-
-        //        using (SqlCommand commandEndereco = new SqlCommand(queryEndereco, connection))
-        //        {
-        //            // Adicione os parâmetros de Endereco
-        //            commandEndereco.Parameters.AddWithValue("@Tipo", clienteAtualizado.TipoEndereco);
-        //            commandEndereco.Parameters.AddWithValue("@CEP", clienteAtualizado.CEP);
-        //            commandEndereco.Parameters.AddWithValue("@Logradouro", clienteAtualizado.Logradouro);
-        //            commandEndereco.Parameters.AddWithValue("@Numero", clienteAtualizado.Numero);
-        //            commandEndereco.Parameters.AddWithValue("@Bairro", clienteAtualizado.Bairro);
-        //            commandEndereco.Parameters.AddWithValue("@Complemento", clienteAtualizado.Complemento);
-        //            commandEndereco.Parameters.AddWithValue("@Cidade", clienteAtualizado.Cidade);
-        //            commandEndereco.Parameters.AddWithValue("@Estado", clienteAtualizado.Estado);
-        //            commandEndereco.Parameters.AddWithValue("@Referencia", clienteAtualizado.Referencia);
-        //            commandEndereco.Parameters.AddWithValue("@ClienteId", clienteAtualizado.Id);
-
-        //            await commandEndereco.ExecuteNonQueryAsync();
-        //        }
-
-        //        return clienteAtualizado;
-        //    }
-        //}
-
-        //public async Task<ClienteModel> Atualizar(ClienteModel cliente, int id)
-        //{
-        //    ClienteModel clientePorId = await BuscarPorId(id);
-
-        //    if (clientePorId == null)
-        //    {
-        //        throw new Exception($"Cliente para o ID:{id} não foi encontrado no banco da dados!");
-        //    }
-        //    //Endereco
-        //    clientePorId.Contato = cliente.Contato;
-        //    clientePorId.Endereco = cliente.Endereco;
-
-        //    _dbContext.Clientes.Update(clientePorId);
-        //    await _dbContext.SaveChangesAsync();
-
-        //    return clientePorId;
-        //}
-
-        //Remover Cliente
-        //public async Task<ClienteModel> Apagar(int id)
-        //{
-        //    ClienteModel clientePorId = await BuscarPorId(id);
-
-        //    if (clientePorId == null)
-        //    {
-        //        throw new Exception($"Cliente para o ID:{id} não foi encontrado no banco da dados!");
-        //    }
-
-        //    _dbContext.Clientes.Remove(clientePorId);
-        //    await _dbContext.SaveChangesAsync();
-        //    return clientePorId;
-        //}
-
-        //public async Task<ClienteModel> Apagar(int id)
-        //{
-        //    ClienteModel clientePorId = await BuscarPorId(id);
-
-        //    if (clientePorId == null)
-        //    {
-        //        throw new Exception($"Cliente para o ID:{id} não foi encontrado no banco da dados!");
-        //    }
-
-        //    _dbContext.Clientes.Remove(clientePorId);
-        //    await _dbContext.SaveChangesAsync();
-        //    return clientePorId;
-        //}
-        //
-
-        ///METODO CERTO NÃO ALTERAR ABAIXO
+                
         public async Task<ClienteModel> Apagar(int id)
         {
             ClienteModel cliente = null;
 
             string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
-
-            // Construa a consulta SQL com base no ID fornecido
+                        
             string query = @"
                     SELECT c.Id AS Id, c.Nome, c.Email AS EmailCliente, c.CPF, c.RG,
                            co.Id AS Id, co.Tipo AS TipoContato, co.DDD, co.Telefone,
@@ -294,8 +154,7 @@ namespace TesteAdecco.Repositorios
                         if (reader.HasRows)
                         {
                             while (await reader.ReadAsync())
-                            {
-                                // Ler dados do cliente
+                            {                                
                                 int clienteId = reader.GetInt32(reader.GetOrdinal("Id"));
                                 string nomeCliente = reader.GetString(reader.GetOrdinal("Nome"));
                                 string emailCliente = reader.GetString(reader.GetOrdinal("EmailCliente"));
@@ -311,21 +170,21 @@ namespace TesteAdecco.Repositorios
                                     RG = rgCliente
                                 };
 
-                                // Apagar informações do Contato
+                                
                                 int contatoId = reader.GetInt32(reader.GetOrdinal("Id"));
                                 if (!reader.IsDBNull(reader.GetOrdinal("Id")))
                                 {
                                     await ApagarPorId("Contato", contatoId);
                                 }
 
-                                // Apagar informações do Endereco
+                                
                                 int enderecoId = reader.GetInt32(reader.GetOrdinal("Id"));
                                 if (!reader.IsDBNull(reader.GetOrdinal("Id")))
                                 {
                                     await ApagarPorId("Endereco", enderecoId);
                                 }
 
-                                // Apagar informações do Cliente
+                                
                                 await ApagarPorId("Cliente", clienteId);
                             }
                         }
@@ -356,18 +215,13 @@ namespace TesteAdecco.Repositorios
                 }
             }
         }
-        ///METODO CERTO NÃO ALTERAR ACIMA
-              
+                      
         public async Task<ClienteModel> AtualizarPorId(int id , ClienteModel cliente)
-        {
-
-            //ClienteModel clienteAtualizado = new ClienteModel();
-
+        {        
             ClienteModel clientes = null;
 
             string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
 
-            // Construa a consulta SQL com base no ID fornecido
             string query = @"
                     SELECT c.Id AS Id, c.Nome, c.Email AS EmailCliente, c.CPF, c.RG,
                            co.Id AS Id, co.Tipo AS TipoContato, co.DDD, co.Telefone,
@@ -391,8 +245,7 @@ namespace TesteAdecco.Repositorios
                         if (reader.HasRows)
                         {
                             while (await reader.ReadAsync())
-                            {
-                                // Ler dados do cliente
+                            {                                
                                 int clienteId = reader.GetInt32(reader.GetOrdinal("Id"));
                                 string nomeCliente = reader.GetString(reader.GetOrdinal("Nome"));
                                 string emailCliente = reader.GetString(reader.GetOrdinal("EmailCliente"));
@@ -408,23 +261,21 @@ namespace TesteAdecco.Repositorios
                                     RG = rgCliente
                                 };
 
-                                // Atualizar informações do Contato
+                                
                                 int contatoId = reader.GetInt32(reader.GetOrdinal("Id"));
                                 if (!reader.IsDBNull(reader.GetOrdinal("Id")))
-                                {
-                                    //ContatoModel contatoModel = new ContatoModel(); 
-
+                                {    
                                     await AtualizarContato(contatoId, cliente);
                                 }
 
-                                // Atualizar informações do Endereco
+                                
                                 int enderecoId = reader.GetInt32(reader.GetOrdinal("Id"));
                                 if (!reader.IsDBNull(reader.GetOrdinal("Id")))
                                 {
                                     await AtualizarEndereco(enderecoId, cliente);
                                 }
 
-                                // Atualizar informações do Cliente
+                                
                                 await AtualizarCliente(clienteId, cliente);
                             }
                         }
@@ -521,7 +372,6 @@ namespace TesteAdecco.Repositorios
                 }
             }
         }
-
 
         public async Task<ClienteModel> Atualizar(ClienteModel cliente, int id)
         {

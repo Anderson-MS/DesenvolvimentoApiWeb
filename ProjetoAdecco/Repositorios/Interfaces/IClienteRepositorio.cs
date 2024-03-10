@@ -8,6 +8,7 @@ namespace TesteAdecco.Repositorios.Interfaces
         Task<ClienteModel> Adicionar(ClienteModel cliente);           
         Task<ClienteModel> Atualizar(ClienteModel cliente, int id);       
         Task<ClienteModel> Apagar(int id);
-        Task<ClienteModel> AtualizarPorId(int id, ClienteModel cliente);    
+        Task<ClienteModel> AtualizarPorId(int id, ClienteModel cliente);       
+        Task<List<ClienteModel>> BuscarClientes(string nomeOuEmailOuCpf);
     }
 }

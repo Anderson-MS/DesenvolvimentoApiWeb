@@ -1,5 +1,4 @@
 ﻿using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using TesteAdecco.Data;
 using TesteAdecco.Models;
 using TesteAdecco.Repositorios.Interfaces;
@@ -13,42 +12,73 @@ namespace TesteAdecco.Repositorios
         {
             _dbContext = sistemaClienteDBContex;
         }
-           
+         
         public async Task<List<ClienteModel>> BuscarTodosClientes()
         {
             List<ClienteModel> clientes = new List<ClienteModel>();
 
             string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
-            string query = "SELECT * FROM [TesteDB].[dbo].[Cliente]";
+            string query = @"
+                SELECT c.Id AS Id, c.Nome, c.Email AS EmailCliente, c.CPF, c.RG,
+                       co.Id AS Id, co.Tipo AS TipoContato, co.DDD, co.Telefone,
+                       e.Id AS Id, e.Tipo AS TipoEndereco, e.CEP, e.Logradouro, e.Numero, e.Bairro, e.Complemento, e.Cidade, e.Estado, e.Referencia
+                FROM Cliente c
+                LEFT JOIN Contato co ON c.Id = co.Id
+                LEFT JOIN Endereco e ON c.Id = e.Id;
+            ";
 
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                await connection.OpenAsync(); 
+                await connection.OpenAsync();
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
-                    using (SqlDataReader reader = await command.ExecuteReaderAsync()) 
+                    using (SqlDataReader reader = await command.ExecuteReaderAsync())
                     {
                         if (reader.HasRows)
                         {
-                            while (await reader.ReadAsync()) 
+                            while (await reader.ReadAsync())
                             {
-                                int clienteId = reader.GetInt32(0); 
-                                string nomeCliente = reader.GetString(1); 
-                                string EmailCliente = reader.GetString(2); 
-                                string CPF = reader.GetString(3); 
-                                string RG = reader.GetString(4);
-                          
+                                int clienteId = reader.GetInt32(reader.GetOrdinal("Id"));
+                                string nomeCliente = reader.GetString(reader.GetOrdinal("Nome"));
+                                string emailCliente = reader.GetString(reader.GetOrdinal("EmailCliente"));
+                                string cpf = reader.GetString(reader.GetOrdinal("CPF"));
+                                string rg = reader.GetString(reader.GetOrdinal("RG"));
+
                                 ClienteModel cliente = new ClienteModel
                                 {
-                                      Id = clienteId,
-                                      Nome = nomeCliente,
-                                      Email = EmailCliente,
-                                      CPF = CPF,
-                                      RG = RG,                                     
+                                    Id = clienteId,
+                                    Nome = nomeCliente,
+                                    Email = emailCliente,
+                                    CPF = cpf,
+                                    RG = rg,
                                 };
 
-                                clientes.Add(cliente); 
+                                int contatoId = reader.IsDBNull(reader.GetOrdinal("Id")) ? 0 : reader.GetInt32(reader.GetOrdinal("Id"));
+                                if (contatoId != 0)
+                                {
+                                    ContatoModel contato = await ExtrairContato(contatoId);
+                                    cliente.Tipo = contato.Tipo;
+                                    cliente.DDD = contato.DDD;
+                                    cliente.Telefone = contato.Telefone;
+                                }
+
+                                int enderecoId = reader.IsDBNull(reader.GetOrdinal("Id")) ? 0 : reader.GetInt32(reader.GetOrdinal("Id"));
+                                if (enderecoId != 0)
+                                {
+                                    EnderecoMdel endereco = await ExtrairEndereco(enderecoId);
+                                    cliente.TipoEndereco = endereco.TipoEndereco;
+                                    cliente.CEP = endereco.CEP;
+                                    cliente.Logradouro = endereco.Logradouro;
+                                    cliente.Numero = endereco.Numero;
+                                    cliente.Bairro = endereco.Bairro;
+                                    cliente.Complemento = endereco.Complemento;
+                                    cliente.Cidade = endereco.Cidade;
+                                    cliente.Estado = endereco.Estado;
+                                    cliente.Referencia = endereco.Referencia;
+                                }
+
+                                clientes.Add(cliente);
                             }
                         }
                         else
@@ -58,9 +88,9 @@ namespace TesteAdecco.Repositorios
                     }
                 }
             }
-
-            return clientes; 
+            return clientes;
         }
+
 
         public async Task<ClienteModel> Adicionar(ClienteModel novoCliente)
         {
@@ -286,7 +316,6 @@ namespace TesteAdecco.Repositorios
                     }
                 }
             }
-
             return cliente;
         }
 
@@ -384,6 +413,328 @@ namespace TesteAdecco.Repositorios
             clienteModel.Nome = clienteModel.Nome;
             
             return clienteModel;
-        } 
+        }     
+
+        public async Task<List<ClienteModel>> BuscarClientes(string nomeOuEmailOuCpf = null)
+        {
+            List<ClienteModel> clientes = new List<ClienteModel>();
+
+            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
+                        
+            bool isNumeric = nomeOuEmailOuCpf.All(char.IsDigit);
+            
+            bool containsAtSymbol = nomeOuEmailOuCpf.Contains("@");
+                        
+            if (isNumeric)
+            {
+                string query = @"
+                    SELECT c.Id AS Id, c.Nome, c.Email AS EmailCliente, c.CPF, c.RG,
+                           co.Id AS Id, co.Tipo AS TipoContato, co.DDD, co.Telefone,
+                           e.Id AS Id, e.Tipo AS TipoEndereco, e.CEP, e.Logradouro, e.Numero, e.Bairro, e.Complemento, e.Cidade, e.Estado, e.Referencia
+                    FROM Cliente c
+                    LEFT JOIN Contato co ON c.Id = co.Id
+                    LEFT JOIN Endereco e ON c.Id = e.Id
+                    WHERE (@nomeOuEmailOuCpf IS NULL OR c.CPF = @nomeOuEmailOuCpf);
+                ";
+
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@nomeOuEmailOuCpf", string.IsNullOrEmpty(nomeOuEmailOuCpf) ? (object)DBNull.Value : nomeOuEmailOuCpf);
+
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                int clienteId = reader.GetInt32(reader.GetOrdinal("Id"));
+                                string nomeCliente = reader.GetString(reader.GetOrdinal("Nome"));
+                                string emailCliente = reader.GetString(reader.GetOrdinal("EmailCliente"));
+                                string cpfCliente = reader.GetString(reader.GetOrdinal("CPF"));
+                                string rgCliente = reader.GetString(reader.GetOrdinal("RG"));
+
+                                ClienteModel cliente = new ClienteModel
+                                {
+                                    Id = clienteId,
+                                    Nome = nomeCliente,
+                                    Email = emailCliente,
+                                    CPF = cpfCliente,
+                                    RG = rgCliente
+                                };
+
+                                int contatoId = reader.IsDBNull(reader.GetOrdinal("Id")) ? 0 : reader.GetInt32(reader.GetOrdinal("Id"));
+                                if (contatoId != 0)
+                                {
+                                    ContatoModel contato = await ExtrairContato(contatoId);
+                                    cliente.Tipo = contato.Tipo;
+                                    cliente.DDD = contato.DDD;
+                                    cliente.Telefone = contato.Telefone;
+                                }
+
+                                int enderecoId = reader.IsDBNull(reader.GetOrdinal("Id")) ? 0 : reader.GetInt32(reader.GetOrdinal("Id"));
+                                if (enderecoId != 0)
+                                {
+                                    EnderecoMdel endereco = await ExtrairEndereco(enderecoId);
+                                    cliente.TipoEndereco = endereco.TipoEndereco;
+                                    cliente.CEP = endereco.CEP;
+                                    cliente.Logradouro = endereco.Logradouro;
+                                    cliente.Numero = endereco.Numero;
+                                    cliente.Bairro = endereco.Bairro;
+                                    cliente.Complemento = endereco.Complemento;
+                                    cliente.Cidade = endereco.Cidade;
+                                    cliente.Estado = endereco.Estado;
+                                    cliente.Referencia = endereco.Referencia;
+                                }
+
+                                clientes.Add(cliente);
+                            }
+                        }
+                    }
+                }
+            }
+            else if (containsAtSymbol)
+            {              
+                string query = @"
+                    SELECT c.Id AS Id, c.Nome, c.Email AS EmailCliente, c.CPF, c.RG,
+                           co.Id AS Id, co.Tipo AS TipoContato, co.DDD, co.Telefone,
+                           e.Id AS Id, e.Tipo AS TipoEndereco, e.CEP, e.Logradouro, e.Numero, e.Bairro, e.Complemento, e.Cidade, e.Estado, e.Referencia
+                    FROM Cliente c
+                    LEFT JOIN Contato co ON c.Id = co.Id
+                    LEFT JOIN Endereco e ON c.Id = e.Id
+                    WHERE (@nomeOuEmailOuCpf IS NULL OR c.Email = @nomeOuEmailOuCpf);
+                ";
+
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@nomeOuEmailOuCpf", string.IsNullOrEmpty(nomeOuEmailOuCpf) ? (object)DBNull.Value : nomeOuEmailOuCpf);
+
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                int clienteId = reader.GetInt32(reader.GetOrdinal("Id"));
+                                string nomeCliente = reader.GetString(reader.GetOrdinal("Nome"));
+                                string emailCliente = reader.GetString(reader.GetOrdinal("EmailCliente"));
+                                string cpfCliente = reader.GetString(reader.GetOrdinal("CPF"));
+                                string rgCliente = reader.GetString(reader.GetOrdinal("RG"));
+
+                                ClienteModel cliente = new ClienteModel
+                                {
+                                    Id = clienteId,
+                                    Nome = nomeCliente,
+                                    Email = emailCliente,
+                                    CPF = cpfCliente,
+                                    RG = rgCliente
+                                };
+
+                                int contatoId = reader.IsDBNull(reader.GetOrdinal("Id")) ? 0 : reader.GetInt32(reader.GetOrdinal("Id"));
+                                if (contatoId != 0)
+                                {
+                                    ContatoModel contato = await ExtrairContato(contatoId);
+                                    cliente.Tipo = contato.Tipo;
+                                    cliente.DDD = contato.DDD;
+                                    cliente.Telefone = contato.Telefone;
+                                }
+
+                                int enderecoId = reader.IsDBNull(reader.GetOrdinal("Id")) ? 0 : reader.GetInt32(reader.GetOrdinal("Id"));
+                                if (enderecoId != 0)
+                                {
+                                    EnderecoMdel endereco = await ExtrairEndereco(enderecoId);
+                                    cliente.TipoEndereco = endereco.TipoEndereco;
+                                    cliente.CEP = endereco.CEP;
+                                    cliente.Logradouro = endereco.Logradouro;
+                                    cliente.Numero = endereco.Numero;
+                                    cliente.Bairro = endereco.Bairro;
+                                    cliente.Complemento = endereco.Complemento;
+                                    cliente.Cidade = endereco.Cidade;
+                                    cliente.Estado = endereco.Estado;
+                                    cliente.Referencia = endereco.Referencia;
+                                }
+
+                                clientes.Add(cliente);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {                
+                string query = @"
+                    SELECT c.Id AS Id, c.Nome, c.Email AS EmailCliente, c.CPF, c.RG,
+                           co.Id AS Id, co.Tipo AS TipoContato, co.DDD, co.Telefone,
+                           e.Id AS Id, e.Tipo AS TipoEndereco, e.CEP, e.Logradouro, e.Numero, e.Bairro, e.Complemento, e.Cidade, e.Estado, e.Referencia
+                    FROM Cliente c
+                    LEFT JOIN Contato co ON c.Id = co.Id  -- Corrigindo aqui
+                    LEFT JOIN Endereco e ON c.Id = e.Id  -- Corrigindo aqui
+                    WHERE (@NomeOuEmailOuCpf IS NULL OR c.Nome LIKE @NomeOuEmailOuCpf OR c.Email = @NomeOuEmailOuCpf OR c.CPF = @NomeOuEmailOuCpf);
+                ";
+
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@NomeOuEmailOuCpf", string.IsNullOrEmpty(nomeOuEmailOuCpf) ? (object)DBNull.Value : "%" + nomeOuEmailOuCpf + "%");
+
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                int clienteId = reader.GetInt32(reader.GetOrdinal("Id"));
+                                string nomeCliente = reader.GetString(reader.GetOrdinal("Nome"));
+                                string emailCliente = reader.GetString(reader.GetOrdinal("EmailCliente"));
+                                string cpfCliente = reader.GetString(reader.GetOrdinal("CPF"));
+                                string rgCliente = reader.GetString(reader.GetOrdinal("RG"));
+
+                                ClienteModel cliente = new ClienteModel
+                                {
+                                    Id = clienteId,
+                                    Nome = nomeCliente,
+                                    Email = emailCliente,
+                                    CPF = cpfCliente,
+                                    RG = rgCliente
+                                };
+
+                                int contatoId = reader.IsDBNull(reader.GetOrdinal("Id")) ? 0 : reader.GetInt32(reader.GetOrdinal("Id"));
+                                if (contatoId != 0)
+                                {
+                                    ContatoModel contato = await ExtrairContato(contatoId);
+                                    cliente.Tipo = contato.Tipo;
+                                    cliente.DDD = contato.DDD;
+                                    cliente.Telefone = contato.Telefone;
+                                }
+
+                                int enderecoId = reader.IsDBNull(reader.GetOrdinal("Id")) ? 0 : reader.GetInt32(reader.GetOrdinal("Id"));
+                                if (enderecoId != 0)
+                                {
+                                    EnderecoMdel endereco = await ExtrairEndereco(enderecoId);
+                                    cliente.TipoEndereco = endereco.TipoEndereco;
+                                    cliente.CEP = endereco.CEP;
+                                    cliente.Logradouro = endereco.Logradouro;
+                                    cliente.Numero = endereco.Numero;
+                                    cliente.Bairro = endereco.Bairro;
+                                    cliente.Complemento = endereco.Complemento;
+                                    cliente.Cidade = endereco.Cidade;
+                                    cliente.Estado = endereco.Estado;
+                                    cliente.Referencia = endereco.Referencia;
+                                }
+
+                                clientes.Add(cliente);
+                            }
+                        }
+                    }
+                }
+            }
+            return clientes;
+        }
+
+
+
+        private async Task<ContatoModel> ExtrairContato(int contatoId)
+        {
+            try
+            {
+                string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
+                string selectQuery = @"
+                    SELECT Tipo AS TipoContato, DDD, Telefone
+                    FROM Contato
+                    WHERE Id = @Id;
+                ";
+
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    using (SqlCommand command = new SqlCommand(selectQuery, connection))
+                    {
+                        command.Parameters.AddWithValue("@Id", contatoId);
+
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            if (reader.HasRows)
+                            {
+                                await reader.ReadAsync();
+
+                                string tipoContato = reader.GetString(reader.GetOrdinal("TipoContato"));
+                                int ddd = reader.GetInt32(reader.GetOrdinal("DDD"));
+                                decimal telefoneDecimal = reader.GetDecimal(reader.GetOrdinal("Telefone"));
+                                string telefone = telefoneDecimal.ToString();
+
+                                return new ContatoModel
+                                {
+                                    Tipo = tipoContato,
+                                    DDD = Convert.ToInt32(ddd),
+                                    Telefone = telefone
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return null;
+        }
+
+        private async Task<EnderecoMdel> ExtrairEndereco(int enderecoId)
+        {
+            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";          
+
+            string selectQuery = @"
+                SELECT Tipo AS TipoEndereco, CEP, Logradouro, Numero, Bairro, Complemento, Cidade, Estado, Referencia
+                FROM Endereco
+                WHERE Id = @Id;
+            ";
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                await connection.OpenAsync();
+
+                using (SqlCommand command = new SqlCommand(selectQuery, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", enderecoId);
+
+                    using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                    {
+                        await reader.ReadAsync();
+
+                        string tipoEndereco = reader.GetString(reader.GetOrdinal("TipoEndereco"));
+                        string cep = reader.GetString(reader.GetOrdinal("CEP"));
+                        string logradouro = reader.GetString(reader.GetOrdinal("Logradouro"));
+                        int numero = reader.GetInt32(reader.GetOrdinal("Numero"));
+                        string numeroString = numero.ToString();
+                        string bairro = reader.GetString(reader.GetOrdinal("Bairro"));
+                        string complemento = reader.GetString(reader.GetOrdinal("Complemento"));
+                        string cidade = reader.GetString(reader.GetOrdinal("Cidade"));
+                        string estado = reader.GetString(reader.GetOrdinal("Estado"));
+                        string referencia = reader.GetString(reader.GetOrdinal("Referencia"));
+
+                        return new EnderecoMdel
+                        {
+                            TipoEndereco = tipoEndereco,
+                            CEP = cep,
+                            Logradouro = logradouro,
+                            Numero = numeroString,
+                            Bairro = bairro,
+                            Complemento = complemento,
+                            Cidade = cidade,
+                            Estado = estado,
+                            Referencia = referencia
+                        };
+                    }
+
+                }
+            }
+            return null;
+        }
     }
 }

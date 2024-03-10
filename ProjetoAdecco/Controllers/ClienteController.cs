@@ -21,14 +21,26 @@ namespace TesteAdecco.Controllers
         {
             List<ClienteModel> clientes = await _clienteRepositorio.BuscarTodosClientes();
             return Ok(clientes);
+        }       
+
+        [HttpGet("/cliente/buscar")]
+        public async Task<ActionResult<List<ClienteModel>>> BuscarClientesComFiltros(string nomeOuEmailOuCpf = null)
+        {
+            var clientes = await _clienteRepositorio.BuscarClientes(nomeOuEmailOuCpf);
+
+            if (clientes == null || clientes.Count == 0)
+            {
+                return NotFound("Nenhum cliente encontrado com os filtros fornecidos.");
+            }
+
+            return Ok(clientes);
         }
 
         [HttpPost("/cliente/criar")]
         public async Task<ActionResult<ClienteModel>> Cadastrar([FromBody] ClienteModel clienteModel)
         {
             ClienteModel cliente = await _clienteRepositorio.Adicionar(clienteModel);
-
-            return Ok("Cliente Cadastrado com sucesso!");
+            return Ok(cliente);
         }
 
         [HttpPut("/cliente/atualizar/{id}")]
@@ -36,23 +48,14 @@ namespace TesteAdecco.Controllers
         {
             clienteModel.Id = id;
             ClienteModel cliente = await _clienteRepositorio.Atualizar(clienteModel, id);
-            return Ok("Cliente Atualizado sucesso!");
+            return Ok(cliente);
         }
 
         [HttpDelete("/cliente/remover/{id}")]
         public async Task<ActionResult<List<ClienteModel>>> Apagar(int id)
         {
-            try
-            {
-                await _clienteRepositorio.Apagar(id);
-                return NotFound("Cliente foi apagado!");
-            }
-            catch (Exception ex)
-            {               
-                return BadRequest(ex.Message);
-            }
+            await _clienteRepositorio.Apagar(id);
+            return NotFound("Cliente foi apagado!");        
         }
-
-        
     }
 }

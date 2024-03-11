@@ -20,6 +20,11 @@ namespace TesteAdecco.Controllers
         public async Task<ActionResult<List<ClienteModel>>> BuscarTodosCliente()
         {
             List<ClienteModel> clientes = await _clienteRepositorio.BuscarTodosClientes();
+            
+            if (clientes.Count == 0)
+            {
+                return BadRequest("Nenhum cliente foi encontrado!");
+            }
             return Ok(clientes);
         }       
 
@@ -39,7 +44,7 @@ namespace TesteAdecco.Controllers
         [HttpPost("/cliente/criar")]
         public async Task<ActionResult<ClienteModel>> Cadastrar([FromBody] ClienteModel clienteModel)
         {
-            ClienteModel cliente = await _clienteRepositorio.Adicionar(clienteModel);
+            ClienteModel cliente = await _clienteRepositorio.Adicionar(clienteModel);   
             return Ok(cliente);
         }
 
@@ -47,7 +52,7 @@ namespace TesteAdecco.Controllers
         public async Task<ActionResult<List<ClienteModel>>> Atualizar([FromBody] ClienteModel clienteModel, int id)
         {
             clienteModel.Id = id;
-            ClienteModel cliente = await _clienteRepositorio.Atualizar(clienteModel, id);
+            ClienteModel cliente = await _clienteRepositorio.Atualizar(clienteModel, id);           
             return Ok(cliente);
         }
 
@@ -55,7 +60,7 @@ namespace TesteAdecco.Controllers
         public async Task<ActionResult<List<ClienteModel>>> Apagar(int id)
         {
             await _clienteRepositorio.Apagar(id);
-            return NotFound("Cliente foi apagado!");        
+            return NotFound("Cliente foi apagado!");
         }
     }
 }

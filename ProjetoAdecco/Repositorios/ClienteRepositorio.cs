@@ -8,16 +8,18 @@ namespace TesteAdecco.Repositorios
     public class ClienteRepositorio : IClienteRepositorio
     {
         private readonly SistemaClienteDBContex _dbContext;
-        public ClienteRepositorio(SistemaClienteDBContex sistemaClienteDBContex)
+        private readonly IConfiguration _configuration;
+        public ClienteRepositorio(SistemaClienteDBContex sistemaClienteDBContex , IConfiguration configuration)
         {
             _dbContext = sistemaClienteDBContex;
+            _configuration = configuration;
         }
          
         public async Task<List<ClienteModel>> BuscarTodosClientes()
         {
             List<ClienteModel> clientes = new List<ClienteModel>();
 
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
+            string connectionString = _configuration.GetConnectionString("DataBase");
             string query = @"
                 SELECT c.Id AS Id, c.Nome, c.Email AS EmailCliente, c.CPF, c.RG,
                        co.Id AS Id, co.Tipo AS TipoContato, co.DDD, co.Telefone,
@@ -82,7 +84,7 @@ namespace TesteAdecco.Repositorios
                             }
                         }
                         else
-                        {
+                        {    
                             Console.WriteLine("Nenhum cliente encontrado.");
                         }
                     }
@@ -91,10 +93,9 @@ namespace TesteAdecco.Repositorios
             return clientes;
         }
 
-
         public async Task<ClienteModel> Adicionar(ClienteModel novoCliente)
         {
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
+            string connectionString = _configuration.GetConnectionString("DataBase");
             string queryCliente = @"
                 INSERT INTO Cliente (Nome, Email, CPF, RG) 
                 VALUES (@Nome, @Email, @CPF, @RG);
@@ -159,8 +160,8 @@ namespace TesteAdecco.Repositorios
         {
             ClienteModel cliente = null;
 
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
-                        
+            string connectionString = _configuration.GetConnectionString("DataBase");
+
             string query = @"
                     SELECT c.Id AS Id, c.Nome, c.Email AS EmailCliente, c.CPF, c.RG,
                            co.Id AS Id, co.Tipo AS TipoContato, co.DDD, co.Telefone,
@@ -231,7 +232,7 @@ namespace TesteAdecco.Repositorios
 
         private async Task ApagarPorId(string tabela, int id)
         {
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
+            string connectionString = _configuration.GetConnectionString("DataBase");
             string deleteQuery = $"DELETE FROM {tabela} WHERE Id = @Id";
 
             using (SqlConnection connection = new SqlConnection(connectionString))
@@ -250,7 +251,7 @@ namespace TesteAdecco.Repositorios
         {        
             ClienteModel clientes = null;
 
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
+            string connectionString = _configuration.GetConnectionString("DataBase");
 
             string query = @"
                     SELECT c.Id AS Id, c.Nome, c.Email AS EmailCliente, c.CPF, c.RG,
@@ -321,7 +322,7 @@ namespace TesteAdecco.Repositorios
 
         private async Task AtualizarContato(int contatoId, ClienteModel contatoAtualizado)
         {
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
+            string connectionString = _configuration.GetConnectionString("DataBase");
             string updateQuery = @"
                     UPDATE Contato
                     SET Tipo = @Tipo, DDD = @DDD, Telefone = @Telefone
@@ -346,7 +347,7 @@ namespace TesteAdecco.Repositorios
 
         private async Task AtualizarEndereco(int enderecoId, ClienteModel enderecoAtualizado)
         {
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
+            string connectionString = _configuration.GetConnectionString("DataBase");
             string updateQuery = @"
                 UPDATE Endereco
                 SET Tipo = @Tipo, CEP = @CEP, Logradouro = @Logradouro, Numero = @Numero,
@@ -378,7 +379,7 @@ namespace TesteAdecco.Repositorios
 
         private async Task AtualizarCliente(int clienteId, ClienteModel clienteAtualizado)
         {
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
+            string connectionString = _configuration.GetConnectionString("DataBase");
             string updateQuery = @"
                     UPDATE Cliente
                     SET Nome = @Nome, Email = @Email, CPF = @CPF, RG = @RG
@@ -419,12 +420,13 @@ namespace TesteAdecco.Repositorios
         {
             List<ClienteModel> clientes = new List<ClienteModel>();
 
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
-                        
-            bool isNumeric = nomeOuEmailOuCpf.All(char.IsDigit);
+            string connectionString = _configuration.GetConnectionString("DataBase");
+                       
             
             bool containsAtSymbol = nomeOuEmailOuCpf.Contains("@");
-                        
+
+            bool isNumeric = nomeOuEmailOuCpf.Contains("-");
+
             if (isNumeric)
             {
                 string query = @"
@@ -635,13 +637,11 @@ namespace TesteAdecco.Repositorios
             return clientes;
         }
 
-
-
         private async Task<ContatoModel> ExtrairContato(int contatoId)
         {
             try
             {
-                string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";
+                string connectionString = _configuration.GetConnectionString("DataBase");
                 string selectQuery = @"
                     SELECT Tipo AS TipoContato, DDD, Telefone
                     FROM Contato
@@ -687,7 +687,7 @@ namespace TesteAdecco.Repositorios
 
         private async Task<EnderecoMdel> ExtrairEndereco(int enderecoId)
         {
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=TesteDB;Trusted_Connection=True;";          
+            string connectionString = _configuration.GetConnectionString("DataBase");
 
             string selectQuery = @"
                 SELECT Tipo AS TipoEndereco, CEP, Logradouro, Numero, Bairro, Complemento, Cidade, Estado, Referencia
